@@ -36,10 +36,12 @@ class EasyDatabase {
     fetchTable(table = "") {
         return this.get(table);
     }
-    set(table = "", column, value) {
+    set(table = "", whereConditions = [], column, value) {
         if(!table || typeof table !== "string") throw new Error("Table name should be valid string!");
+        if(!Array.isArray(whereConditions)) throw new Error("Where conditions parameter should be an array!");
+        if(whereConditions.some(i=> typeof i !== "object" || !(i instanceof EasyDatabase.WhereCondition))) throw new Error("Where conditions should be a WhereCondition instance!");
         if(typeof column !== "object" || !(column instanceof EasyDatabase.Column)) throw new Error("Column should be a Column instance!");
-        return this.execute(`UPDATE ${table} SET ${column} = ${JSON.stringify(value)}`);
+        return this.execute(`UPDATE ${table} SET ${column} = ${JSON.stringify(value)} WHERE ${whereConditions.map(i=> i.encode()).join(",")}`);
     }
     removeTable(table = "") {
         if(!table || typeof table !== "string") throw new Error("Table name should be valid string!");
@@ -55,14 +57,20 @@ class EasyDatabase {
 }
 EasyDatabase.Column = class Column {
     constructor(name, type, isNotNull, def, isPrimaryKey) {
+        if(typeof name === "object") {
+            isNotNull = name["isNotNull"];
+            isPrimaryKey = name["isPrimaryKey"];
+            def = name["def"];
+            name = name["name"];
+        }
         this._name = name;
         this._type = type;
         this._default = def;
         this._isNotNull = isNotNull;
         this._isPrimaryKey = isPrimaryKey;
     }
-    encode() {
-        return this._name + " " + this._type + " " + (this._isNotNull ? "NOT NULL " : "") + (this._default ? "DEFAULT " + JSON.stringify(this._default) : "") + (this._isPrimaryKey ? "PRIMARY KEY " : "");
+    encode(extra = "") {
+        return this._name + " " + this._type + " " + (this._isNotNull ? "NOT NULL " : "") + (this._default ? "DEFAULT " + JSON.stringify(this._default) : "") + (this._isPrimaryKey ? "PRIMARY KEY " : "") + extra;
     }
 }
 EasyDatabase.NullColumn = class NullColumn extends Column {
@@ -71,48 +79,96 @@ EasyDatabase.NullColumn = class NullColumn extends Column {
     }
 }
 EasyDatabase.IntegerColumn = class IntegerColumn extends Column {
-    constructor(name = "", isNotNull = false, def = 0, isPrimaryKey = false, customType = "", customName = "") {
+    constructor(name = "", isNotNull = false, def = 0, isPrimaryKey = false, autoIncrement = false, customType = "", customName = "") {
+        if(typeof name === "object") {
+            isNotNull = name["isNotNull"];
+            isPrimaryKey = name["isPrimaryKey"];
+            autoIncrement = name["autoIncrement"];
+            customType = name["customType"];
+            customName = name["customName"];
+            def = name["def"];
+            name = name["name"];
+        }
         if(def && typeof def !== "number") throw new Error((customName || "Integer") + " column should have number as default");
         super(name, customType || "INTEGER", isNotNull, def, isPrimaryKey);
+        this._autoIncrement = autoIncrement;
+    }
+    encode() {
+        return super.encode(this._autoIncrement ? " AUTOINCREMENT" : "");
     }
 }
 EasyDatabase.IntegerColumn.TinyIntegerColumn = class TinyIntegerColumn extends IntegerColumn {
-    constructor(name = "", isNotNull = false, def = 0, isPrimaryKey = false, signed = false) {
+    constructor(name = "", isNotNull = false, def = 0, isPrimaryKey = false, autoIncrement = false, signed = false) {
+        if(typeof name === "object") {
+            isNotNull = name["isNotNull"];
+            isPrimaryKey = name["isPrimaryKey"];
+            autoIncrement = name["autoIncrement"];
+            def = name["def"];
+            name = name["name"];
+        }
         const min = signed ? -128 : 0;
         const max = signed ? 127 : 255;
-        super(name, isNotNull, def, isPrimaryKey, (signed ? "" : "UNSIGNED ") + "TINYINT", "Tiny integer");
+        super(name, isNotNull, def, isPrimaryKey, autoIncrement, (signed ? "" : "UNSIGNED ") + "TINYINT", "Tiny integer");
         if(def && (def < min || def > max || def !== Math.floor(def))) throw new Error("Tiny integer column should be "+min+" to "+max+".");
     }
 }
 EasyDatabase.IntegerColumn.SmallIntegerColumn = class SmallIntegerColumn extends IntegerColumn {
-    constructor(name = "", isNotNull = false, def = 0, isPrimaryKey = false, signed = false) {
+    constructor(name = "", isNotNull = false, def = 0, isPrimaryKey = false, autoIncrement = false, signed = false) {
+        if(typeof name === "object") {
+            isNotNull = name["isNotNull"];
+            isPrimaryKey = name["isPrimaryKey"];
+            autoIncrement = name["autoIncrement"];
+            def = name["def"];
+            name = name["name"];
+        }
         const min = signed ? -32768 : 0;
         const max = signed ? 32767 : 65535;
-        super(name, isNotNull, def, isPrimaryKey, (signed ? "" : "UNSIGNED ") + "SMALLINT", "Small integer");
+        super(name, isNotNull, def, isPrimaryKey, autoIncrement, (signed ? "" : "UNSIGNED ") + "SMALLINT", "Small integer");
         if(def && (def < min || def > max || def !== Math.floor(def))) throw new Error("Small integer column should be "+min+" to "+max+".");
     }
 }
 EasyDatabase.IntegerColumn.MediumIntegerColumn = class MediumIntegerColumn extends IntegerColumn {
-    constructor(name = "", isNotNull = false, def = 0, isPrimaryKey = false, signed = false) {
+    constructor(name = "", isNotNull = false, def = 0, isPrimaryKey = false, autoIncrement = false, signed = false) {
+        if(typeof name === "object") {
+            isNotNull = name["isNotNull"];
+            isPrimaryKey = name["isPrimaryKey"];
+            autoIncrement = name["autoIncrement"];
+            def = name["def"];
+            name = name["name"];
+        }
         const min = signed ? -8388608 : 0;
         const max = signed ? 8388607 : 16777215;
-        super(name, isNotNull, def, isPrimaryKey, (signed ? "" : "UNSIGNED ") + "MEDIUMINT", "Medium integer");
+        super(name, isNotNull, def, isPrimaryKey, autoIncrement, (signed ? "" : "UNSIGNED ") + "MEDIUMINT", "Medium integer");
         if(def && (def < min || def > max || def !== Math.floor(def))) throw new Error("Medium integer column should be "+min+" to "+max+".");
     }
 }
 EasyDatabase.IntegerColumn.INTColumn = class INTColumn extends IntegerColumn {
-    constructor(name = "", isNotNull = false, def = 0, isPrimaryKey = false, signed = false) {
+    constructor(name = "", isNotNull = false, def = 0, isPrimaryKey = false, autoIncrement = false, signed = false) {
+        if(typeof name === "object") {
+            isNotNull = name["isNotNull"];
+            isPrimaryKey = name["isPrimaryKey"];
+            autoIncrement = name["autoIncrement"];
+            def = name["def"];
+            name = name["name"];
+        }
         const min = signed ? -2147483648 : 0;
         const max = signed ? 2147483648 : 4294967295;
-        super(name, isNotNull, def, isPrimaryKey, (signed ? "" : "UNSIGNED ") + "INT", "INT");
+        super(name, isNotNull, def, isPrimaryKey, autoIncrement, (signed ? "" : "UNSIGNED ") + "INT", "INT");
         if(def && (def < min || def > max || def !== Math.floor(def))) throw new Error("INT column should be "+min+" to "+max+".");
     }
 }
 EasyDatabase.IntegerColumn.BigIntegerColumn = class BigIntegerColumn extends IntegerColumn {
-    constructor(name = "", isNotNull = false, def = 0, isPrimaryKey = false, signed = false) {
+    constructor(name = "", isNotNull = false, def = 0, isPrimaryKey = false, autoIncrement = false, signed = false) {
+        if(typeof name === "object") {
+            isNotNull = name["isNotNull"];
+            isPrimaryKey = name["isPrimaryKey"];
+            autoIncrement = name["autoIncrement"];
+            def = name["def"];
+            name = name["name"];
+        }
         const min = signed ? -9223372036854775808 : 0;
         const max = signed ? 9223372036854775807 : 18446744073709551615;
-        super(name, isNotNull, def, isPrimaryKey, (signed ? "" : "UNSIGNED ") + "BIGINT", "Big integer");
+        super(name, isNotNull, def, isPrimaryKey, autoIncrement, (signed ? "" : "UNSIGNED ") + "BIGINT", "Big integer");
         if(def && (def < min || def > max || def !== Math.floor(def))) throw new Error("Big integer column should be "+min+" to "+max+".");
     }
 }
@@ -128,6 +184,12 @@ INT8
 */
 EasyDatabase.RealColumn = class RealColumn extends Column {
     constructor(name = "", isNotNull = false, def = 0.0, isPrimaryKey = false) {
+        if(typeof name === "object") {
+            isNotNull = name["isNotNull"];
+            isPrimaryKey = name["isPrimaryKey"];
+            def = name["def"];
+            name = name["name"];
+        }
         if(def && typeof def !== "number") throw new Error("Real column should have float as default");
         super(name, "REAL", isNotNull, def, isPrimaryKey);
     }
@@ -139,6 +201,12 @@ FLOAT
 */
 EasyDatabase.StringColumn = class StringColumn extends Column {
     constructor(name = "", isNotNull = false, def = "", isPrimaryKey = false) {
+        if(typeof name === "object") {
+            isNotNull = name["isNotNull"];
+            isPrimaryKey = name["isPrimaryKey"];
+            def = name["def"];
+            name = name["name"];
+        }
         if(def && typeof def !== "string") throw new Error("String column should have string as default");
         super(name, "TEXT", isNotNull, def, isPrimaryKey);
     }
