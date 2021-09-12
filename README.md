@@ -263,3 +263,41 @@ EasyDatabase.BigColumn extends Column (name: string | ColumnKeyObject, isNotNull
 - EasyDatabase.WhereCondition.BETWEEN (BETWEEN)
 - EasyDatabase.WhereCondition.IS (IS)
 - EasyDatabase.WhereCondition.IS_NOT (IS NOT)
+
+**************
+
+# Misc
+
+## Execute/query things manually
+
+```js
+db.execute(`INSERT INTO table (a, b) VALUES (1, 2)`);
+console.log(db.query(`SELECT * FROM table`));
+```
+
+## Options for database
+
+- Where are options?
+  - While creating new instance of EasyDatabase you can add options, example: `new EasyDatabase("databaseName", {myOption: "myValue", myOtherOption: "myOtherValue"})`
+
+### Debug Mode
+
+- It logs executions and queries to console
+- To enable it add debug: true
+
+```js
+new EasyDatabase("data", {
+    debug: true
+});
+```
+
+### Toggle SQLite Crashes
+
+- If you make it false it will only log sqlite errors to console
+- To enable it add sqliteCrashes: true
+
+```js
+new EasyDatabase("data", {
+    sqliteCrashes: true
+});
+```
