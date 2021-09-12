@@ -1,11 +1,9 @@
-require("fs").existsSync("./data.sqlite") ? require("fs").unlinkSync("./data.sqlite") : null;
+require("fs").existsSync("./dt.sqlite") ? require("fs").unlinkSync("./dt.sqlite") : null;
 // remove sqlite file if exists
 
 const EasyDatabase = require("./EasyDatabase");
-const db = new EasyDatabase("data");
+const db = new EasyDatabase("dt");
 const {IntegerColumn, BigColumn, NullColumn, RealColumn, StringColumn, WhereCondition} = EasyDatabase;
-
-
 
 
 
@@ -75,8 +73,8 @@ const JohnData = db.get("myTable", [
         WhereCondition.EQUALS,
         "John"
     )
-], "*")[0];
-console.log(JohnData); // { "id": 0, "name": "John", "age": 17 }
+])[0];
+console.log(JohnData); // { "id": 1, "name": "John", "age": 17 }
 
 
 
@@ -108,12 +106,12 @@ console.log(myTable);
 /*
 [
     {
-        "id": 0,
+        "id": 1,
         "name": "NewJohn",
         "age": 17
     },
     {
-        "id": 1,
+        "id": 2,
         "name": "Jack",
         "age": 18
     }
