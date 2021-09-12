@@ -5,16 +5,11 @@ const stringify = (str) => {
     return res;
 }
 
-const thr = (e, a) => {
-    if(a._easyDbCrashes) throw new Error(e);
-};
-
 class EasyDatabase {
     constructor(file, options = {}) {
         const k = Object.keys(options);
         this._debug = k.includes("debug") ? options.debug : false;
         this._sqliteCrashes = k.includes("debug") ? options["sqliteCrashes"] : false;
-        this._easyDbCrashes = k.includes("debug") ? options["easyDbCrashes"] : true;
         this._sqlite = require("better-sqlite3")("./" + file.replace(/\.sqlite/g, "") + ".sqlite");
     }
     getSqlite() {
@@ -41,23 +36,23 @@ class EasyDatabase {
         }
     }
     createTable(name = "", columns = [], ifNotExists = true) {
-        if(!name || typeof name !== "string") thr("Name should be valid string!");
-        if(!Array.isArray(columns)) thr("Columns parameter should be an array!");
-        if(columns.some(i=> typeof i !== "object" || !(i instanceof EasyDatabase.Column))) thr("Columns should be a Column instance!");
+        if(!name || typeof name !== "string") throw new Error("Name should be valid string!");
+        if(!Array.isArray(columns)) throw new Error("Columns parameter should be an array!");
+        if(columns.some(i=> typeof i !== "object" || !(i instanceof EasyDatabase.Column))) throw new Error("Columns should be a Column instance!");
         return this.execute(`CREATE TABLE ${ifNotExists ? "IF NOT EXISTS " : ""}${name} (${columns.map(i=> i.encode()).join(", ")})`);
     }
     push(table = "", values = {}) {
-        if(!table || typeof table !== "string") thr("Name should be valid string!");
-        if(typeof values !== "object") thr("Values should be an object!");
+        if(!table || typeof table !== "string") throw new Error("Name should be valid string!");
+        if(typeof values !== "object") throw new Error("Values should be an object!");
         return this.execute(`INSERT INTO ${table} (${Object.keys(values).join(", ")}) VALUES (${Object.values(values).map(i => stringify(i)).join(", ")})`);
     }
     get(table = "", whereConditions = [], select = ["*"], all = false) {
-        if(!table || typeof table !== "string") thr("Table name should be valid string!");
-        if(!Array.isArray(whereConditions)) thr("Where conditions parameter should be an array!");
-        if(whereConditions.some(i=> typeof i !== "object" || !(i instanceof EasyDatabase.WhereCondition))) thr("Where conditions should be a WhereCondition instance!");
-        if(!Array.isArray(select)) thr("Select parameter should be an array!");
-        if(select.length <= 0) thr("Select should have at least one element!");
-        if(select.some(i=> typeof i !== "string")) thr("Select should be an array with strings!");
+        if(!table || typeof table !== "string") throw new Error("Table name should be valid string!");
+        if(!Array.isArray(whereConditions)) throw new Error("Where conditions parameter should be an array!");
+        if(whereConditions.some(i=> typeof i !== "object" || !(i instanceof EasyDatabase.WhereCondition))) throw new Error("Where conditions should be a WhereCondition instance!");
+        if(!Array.isArray(select)) throw new Error("Select parameter should be an array!");
+        if(select.length <= 0) throw new Error("Select should have at least one element!");
+        if(select.some(i=> typeof i !== "string")) throw new Error("Select should be an array with strings!");
         const res = this.query(`SELECT ${select.join(", ")} FROM ${table}${whereConditions.length > 0 ? " WHERE " : ""}${whereConditions.map(i=> i.encode()).join(", ")}`);
         return select.length === 1 && select[0] !== "*" && !all ? res.map(i=> Object.values(i)[0]) : res;
     }
@@ -65,20 +60,20 @@ class EasyDatabase {
         return this.get(table);
     }
     set(table = "", whereConditions = [], column, value) {
-        if(!table || typeof table !== "string") thr("Table name should be valid string!");
-        if(!Array.isArray(whereConditions)) thr("Where conditions parameter should be an array!");
-        if(whereConditions.some(i=> typeof i !== "object" || !(i instanceof EasyDatabase.WhereCondition))) thr("Where conditions should be a WhereCondition instance!");
+        if(!table || typeof table !== "string") throw new Error("Table name should be valid string!");
+        if(!Array.isArray(whereConditions)) throw new Error("Where conditions parameter should be an array!");
+        if(whereConditions.some(i=> typeof i !== "object" || !(i instanceof EasyDatabase.WhereCondition))) throw new Error("Where conditions should be a WhereCondition instance!");
         return this.execute(`UPDATE ${table} SET ${column} = ${stringify(value)} WHERE ${whereConditions.map(i=> i.encode()).join(", ")}`);
     }
     removeTable(table = "") {
-        if(!table || typeof table !== "string") thr("Table name should be valid string!");
+        if(!table || typeof table !== "string") throw new Error("Table name should be valid string!");
         return this.execute(`DROP TABLE ${table}`);
     }
     removeRow(table = "", whereConditions = []) {
-        if(!table || typeof table !== "string") thr("Table name should be valid string!");
-        if(!Array.isArray(whereConditions)) thr("Where conditions parameter should be an array!");
-        if(whereConditions.length <= 0) thr("Where conditions should have at least one element!");
-        if(whereConditions.some(i=> typeof i !== "object" || !(i instanceof EasyDatabase.WhereCondition))) thr("Where conditions should be a WhereCondition instance!");
+        if(!table || typeof table !== "string") throw new Error("Table name should be valid string!");
+        if(!Array.isArray(whereConditions)) throw new Error("Where conditions parameter should be an array!");
+        if(whereConditions.length <= 0) throw new Error("Where conditions should have at least one element!");
+        if(whereConditions.some(i=> typeof i !== "object" || !(i instanceof EasyDatabase.WhereCondition))) throw new Error("Where conditions should be a WhereCondition instance!");
         return this.execute(`DELETE FROM ${table} WHERE ${whereConditions.map(i=> i.encode()).join(", ")}`);
     }
 }
@@ -122,7 +117,7 @@ class IntegerColumn extends Column {
             def = name["def"];
             name = name["name"];
         }
-        if(def && typeof def !== "number") thr((customName || "Integer") + " column should have number as default");
+        if(def && typeof def !== "number") throw new Error((customName || "Integer") + " column should have number as default");
         super(name, customType || "INTEGER", isNotNull, def, isPrimaryKey);
         this._autoIncrement = autoIncrement;
     }
@@ -143,7 +138,7 @@ EasyDatabase.IntegerColumn.TinyIntegerColumn = class TinyIntegerColumn extends I
         const min = signed ? -128 : 0;
         const max = signed ? 127 : 255;
         super(name, isNotNull, def, isPrimaryKey, autoIncrement, (signed ? "" : "UNSIGNED ") + "TINYINT", "Tiny integer");
-        if(def && (def < min || def > max || def !== Math.floor(def))) thr("Tiny integer column should be "+min+" to "+max+".");
+        if(def && (def < min || def > max || def !== Math.floor(def))) throw new Error("Tiny integer column should be "+min+" to "+max+".");
     }
 }
 EasyDatabase.IntegerColumn.SmallIntegerColumn = class SmallIntegerColumn extends IntegerColumn {
@@ -158,7 +153,7 @@ EasyDatabase.IntegerColumn.SmallIntegerColumn = class SmallIntegerColumn extends
         const min = signed ? -32768 : 0;
         const max = signed ? 32767 : 65535;
         super(name, isNotNull, def, isPrimaryKey, autoIncrement, (signed ? "" : "UNSIGNED ") + "SMALLINT", "Small integer");
-        if(def && (def < min || def > max || def !== Math.floor(def))) thr("Small integer column should be "+min+" to "+max+".");
+        if(def && (def < min || def > max || def !== Math.floor(def))) throw new Error("Small integer column should be "+min+" to "+max+".");
     }
 }
 EasyDatabase.IntegerColumn.MediumIntegerColumn = class MediumIntegerColumn extends IntegerColumn {
@@ -173,7 +168,7 @@ EasyDatabase.IntegerColumn.MediumIntegerColumn = class MediumIntegerColumn exten
         const min = signed ? -8388608 : 0;
         const max = signed ? 8388607 : 16777215;
         super(name, isNotNull, def, isPrimaryKey, autoIncrement, (signed ? "" : "UNSIGNED ") + "MEDIUMINT", "Medium integer");
-        if(def && (def < min || def > max || def !== Math.floor(def))) thr("Medium integer column should be "+min+" to "+max+".");
+        if(def && (def < min || def > max || def !== Math.floor(def))) throw new Error("Medium integer column should be "+min+" to "+max+".");
     }
 }
 EasyDatabase.IntegerColumn.INTColumn = class INTColumn extends IntegerColumn {
@@ -188,7 +183,7 @@ EasyDatabase.IntegerColumn.INTColumn = class INTColumn extends IntegerColumn {
         const min = signed ? -2147483648 : 0;
         const max = signed ? 2147483648 : 4294967295;
         super(name, isNotNull, def, isPrimaryKey, autoIncrement, (signed ? "" : "UNSIGNED ") + "INT", "INT");
-        if(def && (def < min || def > max || def !== Math.floor(def))) thr("INT column should be "+min+" to "+max+".");
+        if(def && (def < min || def > max || def !== Math.floor(def))) throw new Error("INT column should be "+min+" to "+max+".");
     }
 }
 EasyDatabase.IntegerColumn.BigIntegerColumn = class BigIntegerColumn extends IntegerColumn {
@@ -203,7 +198,7 @@ EasyDatabase.IntegerColumn.BigIntegerColumn = class BigIntegerColumn extends Int
         const min = signed ? -9223372036854775808 : 0;
         const max = signed ? 9223372036854775807 : 18446744073709551615;
         super(name, isNotNull, def, isPrimaryKey, autoIncrement, (signed ? "" : "UNSIGNED ") + "BIGINT", "Big integer");
-        if(def && (def < min || def > max || def !== Math.floor(def))) thr("Big integer column should be "+min+" to "+max+".");
+        if(def && (def < min || def > max || def !== Math.floor(def))) throw new Error("Big integer column should be "+min+" to "+max+".");
     }
 }
 /*
@@ -224,7 +219,7 @@ EasyDatabase.RealColumn = class RealColumn extends Column {
             def = name["def"];
             name = name["name"];
         }
-        if(def && typeof def !== "number") thr("Real column should have float as default");
+        if(def && typeof def !== "number") throw new Error("Real column should have float as default");
         super(name, "REAL", isNotNull, def, isPrimaryKey);
     }
 }
@@ -241,7 +236,7 @@ EasyDatabase.StringColumn = class StringColumn extends Column {
             def = name["def"];
             name = name["name"];
         }
-        if(def && typeof def !== "string") thr("String column should have string as default");
+        if(def && typeof def !== "string") throw new Error("String column should have string as default");
         super(name, "TEXT", isNotNull, def, isPrimaryKey);
     }
 }
