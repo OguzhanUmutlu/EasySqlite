@@ -2,6 +2,8 @@
 
 - Very useful SQLite3 helper for Node.JS
 
+[![](https://img.shields.io/badge/Discord-black?style=for-the-badge&logo=discord)](https://discord.gg/emAhrw3mvM)
+
 ## First of all
 
 - Install `better-sqlite3` using `npm i better-sqlite3`
